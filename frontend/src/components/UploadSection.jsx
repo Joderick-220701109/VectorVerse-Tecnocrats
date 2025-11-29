@@ -9,6 +9,7 @@ function UploadSection({ onUploadSuccess, onUploadError }) {
   const [file, setFile] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
+  const [jobId, setJobId] = useState(null)
 
   const handleFileSelect = (e) => {
     const selectedFile = e.target.files[0]
@@ -44,6 +45,33 @@ function UploadSection({ onUploadSuccess, onUploadError }) {
     }
   }
 
+  const pollJob = async (jid, token, filename) => {
+    try {
+      const res = await axios.get(`${API_URL}/api/jobs/${jid}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      const data = res.data
+      if (data.state === 'completed') {
+        const r = data.result || {}
+        const msg = `Processed ${filename} · chunks: ${r.text_chunks || 0}, images: ${r.image_chunks || 0}`
+        onUploadSuccess(msg)
+        setIsUploading(false)
+        setJobId(null)
+        setFile(null)
+        const fileInput = document.getElementById('file-input')
+        if (fileInput) fileInput.value = ''
+      } else if (data.state === 'failed') {
+        onUploadError(data.message || 'Processing failed')
+        setIsUploading(false)
+        setJobId(null)
+      } else {
+        setTimeout(() => pollJob(jid, token, filename), 2000)
+      }
+    } catch (error) {
+      setTimeout(() => pollJob(jid, token, filename), 3000)
+    }
+  }
+
   const handleUpload = async () => {
     if (!file) {
       onUploadError('Please select a file first')
@@ -61,12 +89,12 @@ function UploadSection({ onUploadSuccess, onUploadError }) {
         setIsUploading(false)
         return
       }
-      const response = await axios.post(`${API_URL}/api/upload`, formData, {
+      const response = await axios.post(`${API_URL}/api/upload_async`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`,
         },
-        timeout: 300000,
+        timeout: 60000,
         validateStatus: (status) => status >= 200 && status < 500,
       })
 
@@ -90,6 +118,10 @@ function UploadSection({ onUploadSuccess, onUploadError }) {
         } else {
           onUploadError('Upload cancelled')
         }
+      } else if (response.status === 202 && data.job_id) {
+        onUploadSuccess(data.message || 'Accepted for background processing')
+        setJobId(data.job_id)
+        pollJob(data.job_id, token, data.filename || file.name)
       } else if (response.status >= 200 && response.status < 300) {
         const successMessage = data.message
           ? `${data.message} · chunks: ${data.chunks_stored}, images: ${data.images_stored}`
@@ -107,7 +139,7 @@ function UploadSection({ onUploadSuccess, onUploadError }) {
       const errorMessage = error.response?.data?.error || error.message || 'Upload failed'
       onUploadError(errorMessage)
     } finally {
-      setIsUploading(false)
+      if (!jobId) setIsUploading(false)
     }
   }
 

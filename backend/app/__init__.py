@@ -19,7 +19,7 @@ def create_app(testing: bool = False) -> Flask:
     # Ensure upload directory exists and is configured
     os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
     app.config["UPLOAD_FOLDER"] = Config.UPLOAD_FOLDER
-    app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50MB max file size
+    app.config["MAX_CONTENT_LENGTH"] = Config.MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
     # Register blueprints with /api prefix
     from .routes.ingest import bp as ingest_bp

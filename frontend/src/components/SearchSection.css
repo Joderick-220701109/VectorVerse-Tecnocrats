@@ -107,6 +107,37 @@
   letter-spacing: 0.05em;
 }
 
+.mic-btn {
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+  color: var(--text);
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  min-width: 56px;
+}
+
+.mic-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+.mic-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mic-btn.listening {
+  background: var(--gradient-primary);
+  color: white;
+  border-color: transparent;
+}
+
 .search-btn::before {
   content: '';
   position: absolute;
@@ -208,6 +239,10 @@
   .search-btn {
     width: 100%;
     min-width: unset;
+  }
+
+  .mic-btn {
+    width: 100%;
   }
 
   .section-header h2 {

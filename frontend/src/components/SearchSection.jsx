@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Search, Loader2 } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Search, Loader2, Mic, MicOff } from 'lucide-react'
 import axios from 'axios'
 import './SearchSection.css'
 
@@ -8,6 +8,35 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 function SearchSection({ onSearch, isSearching, setIsSearching }) {
   const [query, setQuery] = useState('')
   const [topK, setTopK] = useState(5)
+  const [isListening, setIsListening] = useState(false)
+  const [speechSupported, setSpeechSupported] = useState(false)
+  const recognitionRef = useRef(null)
+
+  if (!recognitionRef.current && typeof window !== 'undefined') {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (SR) {
+      const rec = new SR()
+      rec.continuous = false
+      rec.interimResults = true
+      rec.lang = 'en-US'
+      rec.onresult = (event) => {
+        let finalText = ''
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript
+          if (event.results[i].isFinal) finalText += t
+        }
+        const text = finalText || event.results[0][0].transcript || ''
+        if (text) setQuery((prev) => text)
+      }
+      rec.onend = () => {
+        setIsListening(false)
+      }
+      recognitionRef.current = rec
+      setSpeechSupported(true)
+    } else {
+      setSpeechSupported(false)
+    }
+  }
 
   const handleSearch = async (e) => {
     e.preventDefault()
@@ -17,6 +46,10 @@ function SearchSection({ onSearch, isSearching, setIsSearching }) {
     }
 
     setIsSearching(true)
+    if (isListening && recognitionRef.current) {
+      try { recognitionRef.current.stop() } catch {}
+      setIsListening(false)
+    }
     try {
       const token = localStorage.getItem('lexivion_token')
       if (!token) {
@@ -51,6 +84,21 @@ function SearchSection({ onSearch, isSearching, setIsSearching }) {
     }
   }
 
+  const toggleListening = () => {
+    if (!speechSupported || !recognitionRef.current || isSearching) return
+    if (isListening) {
+      try { recognitionRef.current.stop() } catch {}
+      setIsListening(false)
+    } else {
+      try {
+        setIsListening(true)
+        recognitionRef.current.start()
+      } catch {
+        setIsListening(false)
+      }
+    }
+  }
+
   return (
     <div className="search-section">
       <div className="section-header">
@@ -64,10 +112,19 @@ function SearchSection({ onSearch, isSearching, setIsSearching }) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Enter your search query..."
+            placeholder={speechSupported ? "Type or use voice…" : "Enter your search query..."}
             className="search-input"
             disabled={isSearching}
           />
+          <button
+            type="button"
+            className={`mic-btn ${isListening ? 'listening' : ''}`}
+            onClick={toggleListening}
+            disabled={!speechSupported || isSearching}
+            aria-label={isListening ? 'Stop listening' : 'Start voice input'}
+          >
+            {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+          </button>
           <button
             type="submit"
             className="search-btn"

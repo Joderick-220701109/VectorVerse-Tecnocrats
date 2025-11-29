@@ -29,6 +29,7 @@ class Config:
         "UPLOAD_FOLDER",
         os.path.join(os.getcwd(), "data", "uploads")
     )
+    MAX_UPLOAD_SIZE_MB: int = int(os.getenv("MAX_UPLOAD_SIZE_MB", "1024"))
 
     # === Chunking / Retrieval ===
     CHUNK_SIZE: int = int(os.getenv("CHUNK_SIZE", "450"))
@@ -50,6 +51,12 @@ class Config:
     TEXT_EMBEDDING_DIM: int = int(os.getenv("TEXT_EMBEDDING_DIM", "1024"))
     IMAGE_EMBEDDING_DIM: int = int(os.getenv("IMAGE_EMBEDDING_DIM", "1024"))
     USE_PGVECTOR: bool = os.getenv("USE_PGVECTOR", "true").lower() in ("true", "1", "yes")
+
+    # === Processing Controls ===
+    ENABLE_IMAGE_EMBEDDING: bool = os.getenv("ENABLE_IMAGE_EMBEDDING", "true").lower() in ("true", "1", "yes")
+    MAX_PAGES_PER_DOC: int | None = (
+        int(os.getenv("MAX_PAGES_PER_DOC")) if os.getenv("MAX_PAGES_PER_DOC") else None
+    )
 
     # === Auth ===
     AUTH_SECRET: str = os.getenv("AUTH_SECRET", "change-this-secret")

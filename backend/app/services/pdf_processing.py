@@ -42,7 +42,9 @@ def process_pdf(file_path: str, original_filename: str, owner_user_id: int, cont
     image_chunk_count = 0
 
     with pdfplumber.open(file_path) as pdf:
-        for page_num, page in enumerate(pdf.pages, start=1):
+        total_pages = len(pdf.pages)
+        max_pages = Config.MAX_PAGES_PER_DOC or total_pages
+        for page_num, page in enumerate(pdf.pages[:max_pages], start=1):
             print(f"🔍 Processing page {page_num}...")
             page_text_chunks = chunk_text(page.extract_text() or "")
             last_text_chunk_id: Optional[int] = None
@@ -71,6 +73,8 @@ def process_pdf(file_path: str, original_filename: str, owner_user_id: int, cont
             try:
                 page_images = page.images
                 for i, img_info in enumerate(page_images, start=1):
+                    if not Config.ENABLE_IMAGE_EMBEDDING:
+                        break
                     try:
                         # Try to get the image using pdfplumber's method
                         # This handles PDF filters and decoding automatically
@@ -142,7 +146,7 @@ def process_pdf(file_path: str, original_filename: str, owner_user_id: int, cont
                 print(f"⚠️ Failed to extract images from page {page_num} using pdfplumber images: {exc}")
             
             # Method 2: Fallback to objects.get("image") if Method 1 didn't work
-            if not images_extracted:
+            if not images_extracted and Config.ENABLE_IMAGE_EMBEDDING:
                 try:
                     for i, img_obj in enumerate(page.objects.get("image", []), start=1):
                         try:
@@ -202,4 +206,3 @@ def process_pdf(file_path: str, original_filename: str, owner_user_id: int, cont
         "text_chunks": text_chunk_count,
         "image_chunks": image_chunk_count,
     }
-
