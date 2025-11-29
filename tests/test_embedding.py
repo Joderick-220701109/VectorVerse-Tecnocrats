@@ -82,8 +82,8 @@ class TestEmbedImageFromStream:
         mock_decode.return_value = mock_img
         
         mock_processor.return_value = {'pixel_values': Mock()}
-        mock_output = Mock()
-        mock_output[0].cpu.return_value.numpy.return_value.tolist.return_value = [0.1] * Config.IMAGE_EMBEDDING_DIM
+        mock_output = MagicMock()
+        mock_output.__getitem__.return_value.cpu.return_value.numpy.return_value.tolist.return_value = [0.1] * Config.IMAGE_EMBEDDING_DIM
         mock_model.get_image_features.return_value = mock_output
 
         # Execute

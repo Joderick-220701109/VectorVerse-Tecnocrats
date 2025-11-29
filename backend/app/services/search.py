@@ -70,7 +70,8 @@ def _rank_chunks(query_embedding: List[float], top_k: int, owner_user_id: Option
 
 def search_rag_with_images(query: str, top_k: int = 5, owner_user_id: Optional[int] = None) -> Dict[str, Any]:
     top_k = min(max(top_k, 1), Config.MAX_CONTEXT_CHUNKS)
-    query_embedding = text_model.encode(query).tolist()
+    _qe = text_model.encode(query)
+    query_embedding = _qe.tolist() if hasattr(_qe, "tolist") else (list(_qe) if not isinstance(_qe, list) else _qe)
 
     ranked_chunks = _rank_chunks(query_embedding, top_k, owner_user_id=owner_user_id)
     chunk_ids = [chunk["id"] for chunk in ranked_chunks]
@@ -146,5 +147,7 @@ def search_rag_with_images(query: str, top_k: int = 5, owner_user_id: Optional[i
         "embedding_model": Config.TEXT_EMBEDDING_MODEL,
         "embedding_dim": Config.TEXT_EMBEDDING_DIM,
         "vector_search": "pgvector" if Config.USE_PGVECTOR else "jsonb",
+        "query": query,
+        "top_k": top_k,
     }
 

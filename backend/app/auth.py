@@ -28,6 +28,7 @@ def require_auth(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if os.getenv("TESTING") == "true":
+            g.current_user = {"id": 1, "email": "test@example.com"}
             return fn(*args, **kwargs)
         auth_header = request.headers.get("Authorization", "")
         token = ""
